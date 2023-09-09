@@ -17,10 +17,11 @@ load_dotenv()
 
 client = Api(access_token=os.environ.get("GYAZO_API_TOKEN"))
 
+print("converting...")
 images = convert_from_path(os.environ.get("PDF_DIR") + args.pdf + ".pdf", dpi=300)
 
 urls = []
-for i, image in enumerate(tqdm(images)):
+for i, image in enumerate(tqdm(images, desc="uploading...")):
     with BytesIO() as img_byte_arr:
         # save image to byte array
         image.save(img_byte_arr, format="PNG")
