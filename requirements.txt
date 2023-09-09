@@ -1,5 +1,4 @@
 pdf2image
-requests
 pyperclip
 python-dotenv
 python-gyazo
