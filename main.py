@@ -17,7 +17,7 @@ load_dotenv()
 
 client = Api(access_token=os.environ.get("GYAZO_API_TOKEN"))
 
-images = convert_from_path(os.environ.get("PDF_DIR") + args.pdf + ".pdf")
+images = convert_from_path(os.environ.get("PDF_DIR") + args.pdf + ".pdf", dpi=300)
 
 urls = []
 for i, image in enumerate(tqdm(images)):
