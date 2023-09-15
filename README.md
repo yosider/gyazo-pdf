@@ -26,10 +26,10 @@ PDF_DIR=...
 ```
 
 Add the following function to your `.bashrc` or `.zshrc`.  
+Replace "gp" with any name you prefer.
 ```bash:.bashrc
 gp() {
-    python /path/to/main.py "$1"
+    python /path/to/main.py "$@"
 }
 ```
-You can simply use `gp <pdf name>` to run the script.  
-You can replace "gp" with any name you prefer.
+You can simply use `gp <pdf name>` to run the script (see `gp -h`).  
