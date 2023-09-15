@@ -13,12 +13,8 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("pdf", type=str, help="The name of the PDF file to convert")
 parser.add_argument("--dpi", type=int, default=300, help="The DPI of the output image")
-parser.add_argument(
-    "--first_page", type=int, default=1, help="The first page to convert"
-)
-parser.add_argument(
-    "--last_page", type=int, default=None, help="The last page to convert"
-)
+parser.add_argument("--first", type=int, default=1, help="The first page to convert")
+parser.add_argument("--last", type=int, default=None, help="The last page to convert")
 args = parser.parse_args()
 
 # load env: PDF_DIR, GYAZO_API_TOKEN
@@ -26,12 +22,12 @@ load_dotenv()
 
 client = Api(access_token=os.environ.get("GYAZO_API_TOKEN"))
 
-print("converting...")
+print(f"converting from p.{args.first} to p.{args.last}...")
 images = convert_from_path(
     os.environ.get("PDF_DIR") + args.pdf + ".pdf",
     dpi=args.dpi,
-    first_page=args.first_page,
-    last_page=args.last_page,
+    first_page=args.first,
+    last_page=args.last,
 )
 
 urls = []
