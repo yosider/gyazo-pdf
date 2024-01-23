@@ -12,7 +12,7 @@ dependencies = [
     "tqdm",
 ]
 
-[project.entry-points.console_scripts]
+[project.scripts]
 gp = "gyazo_pdf.main:main"
 
 [build-system]
