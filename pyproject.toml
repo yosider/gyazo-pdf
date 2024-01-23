@@ -1,0 +1,31 @@
+[project]
+name = "gyazo-pdf"
+version = "0.1.0"
+description = "A Python script to convert PDF pages to images and upload them to Gyazo."
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pdf2image",
+    "pyperclip",
+    "python-dotenv",
+    "python-gyazo",
+    "tqdm",
+]
+
+[project.entry-points.console_scripts]
+gp = "gyazo_pdf.main:main"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["gyazo_pdf"]
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"
+line_length = 120
+known_third_party = []
