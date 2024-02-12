@@ -1,23 +1,28 @@
-import argparse
 import os
 from io import BytesIO
 from pathlib import Path
 
+import click
 import pyperclip
 import yaml
 from gyazo import Api
 from pdf2image import convert_from_path
 from tqdm import tqdm
 
-parser = argparse.ArgumentParser(description="Convert PDF pages to images and upload them to Gyazo.")
-parser.add_argument("--pdf", type=str, default="", help="The name of the PDF file to convert")
-parser.add_argument("--dpi", type=int, default=300, help="The DPI of the output image")
-parser.add_argument("--first", type=int, default=1, help="The first page to convert")
-parser.add_argument("--last", type=int, default=None, help="The last page to convert")
-args = parser.parse_args()
+doc = """
+Convert PDF to images and upload to Gyazo.
+
+NAME: The filename of the PDF to convert.
+If not specified, the latest PDF file in PDF_DIR will be used.
+"""
 
 
-def main():
+@click.command(help=doc)
+@click.argument("name", type=str, default="")
+@click.option("--dpi", type=int, default=300, help="The DPI of the output image")
+@click.option("--first", type=int, default=1, help="The first page to convert")
+@click.option("--last", type=int, default=None, help="The last page to convert")
+def main(name, dpi, first, last):
     # load config containing PDF_DIR and GYAZO_API_TOKEN
     # ~/.config/gyazo-pdf/config.yaml
     conf_path = Path(os.environ.get("HOME")) / ".config" / "gyazo-pdf" / "config.yaml"
@@ -28,8 +33,8 @@ def main():
 
     # PDF path
     pdf_dir = Path(conf["PDF_DIR"])
-    if args.pdf != "":
-        path = pdf_dir / args.pdf / ".pdf"
+    if name != "":
+        path = pdf_dir / f"{name}.pdf"
     else:
         # get the latest pdf file in PDF_DIR
         pdfs = list(pdf_dir.glob("*.pdf"))
@@ -38,15 +43,15 @@ def main():
         path = max(pdfs, key=os.path.getctime)
         print(f"Latest PDF file: {path.name}")
 
-    last_page_str = "the last page" if args.last is None else f"p.{args.last}"
-    print(f"Converting from p.{args.first} to {last_page_str}...")
+    last_page_str = "the last page" if last is None else f"p.{last}"
+    print(f"Converting from p.{first} to {last_page_str}...")
 
     # convert
     images = convert_from_path(
         pdf_path=path,
-        dpi=args.dpi,
-        first_page=args.first,
-        last_page=args.last,
+        dpi=dpi,
+        first_page=first,
+        last_page=last,
     )
 
     # upload to Gyazo

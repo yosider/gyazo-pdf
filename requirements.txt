@@ -1,5 +1,0 @@
-pdf2image
-pyperclip
-python-dotenv
-python-gyazo
-tqdm
