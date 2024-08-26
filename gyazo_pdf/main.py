@@ -3,10 +3,11 @@ from io import BytesIO
 from pathlib import Path
 
 import click
+import fitz
 import pyperclip
 import yaml
 from gyazo import Api
-from pdf2image import convert_from_path
+from PIL import Image
 from tqdm import tqdm
 
 doc = """
@@ -36,23 +37,35 @@ def main(name, dpi, first, last):
     if name != "":
         path = pdf_dir / f"{name}.pdf"
     else:
-        # get the latest pdf file in PDF_DIR
+        # If no name is specified, get the latest pdf file in PDF_DIR
+        print("Getting the latest PDF file")
         pdfs = list(pdf_dir.glob("*.pdf"))
         if len(pdfs) == 0:
             raise FileNotFoundError(f"No PDF files found in {str(pdf_dir)}.")
         path = max(pdfs, key=os.path.getctime)
-        print(f"Latest PDF file: {path.name}")
 
-    last_page_str = "the last page" if last is None else f"p.{last}"
+    print(f"Loading {path.name}...")
+    doc = fitz.open(path)
+
+    if last is not None:
+        last_page_str = f"p.{last}"
+    else:
+        last = doc.page_count
+        last_page_str = f"p.{last} (the last page)"
     print(f"Converting from p.{first} to {last_page_str}...")
 
-    # convert
-    images = convert_from_path(
-        pdf_path=path,
-        dpi=dpi,
-        first_page=first,
-        last_page=last,
-    )
+    # Calculate zoom factor to adjust for desired DPI
+    # PDF standard resolution is 72 DPI, so we divide the target DPI by 72
+    zoom = dpi / 72
+    # create a conversion matrix
+    mat = fitz.Matrix(zoom, zoom)
+
+    images = []
+    for page_num in range(first - 1, last):
+        page = doc[page_num]
+        pix = page.get_pixmap(matrix=mat)
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        images.append(img)
 
     # upload to Gyazo
     client = Api(access_token=conf["GYAZO_API_TOKEN"])
@@ -69,14 +82,12 @@ def main(name, dpi, first, last):
             url = res.url.replace("i.gyazo.com", "gyazo.com").replace(".png", "")
             urls.append(url)
 
-    # copy to clipboard
-    """
-    [url 1]
-    [url 2]
-    ...
-    [url N]
-
-    """
+    # copy to clipboard with the following format
+    # [https://gyazo.com/image_id_1]
+    # [https://gyazo.com/image_id_2]
+    # ...
+    # [https://gyazo.com/image_id_N]
+    # This format is intended for pasting into Cosense
     pyperclip.copy("[" + "]\n[".join(urls) + "]\n")
 
 

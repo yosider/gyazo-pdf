@@ -6,12 +6,13 @@ readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
     "click",
-    "pdf2image",
+    "Pillow",
+    "PyMuPDF",
     "pyperclip",
     "python-dotenv",
     "python-gyazo",
-    "tqdm",
     "PyYAML",
+    "tqdm",
 ]
 
 [project.scripts]
