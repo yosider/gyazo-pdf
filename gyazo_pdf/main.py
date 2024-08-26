@@ -2,6 +2,7 @@ import os
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
+from math import ceil
 from pathlib import Path
 
 import click
@@ -10,6 +11,8 @@ import pyperclip
 import yaml
 from gyazo import Api
 from PIL import Image
+
+max_workers = min(32, (os.cpu_count() or 1) + 4)
 
 
 def process_page(
@@ -20,8 +23,8 @@ def process_page(
     """Convert a page to an image and upload to Gyazo."""
     try:
         # convert to image
-        if page.number == 0:
-            print("Converting to image...")
+        if page.number % max_workers == 0:
+            print(f"Batch {page.number // max_workers + 1}: Converting to image...")
         pix = page.get_pixmap(matrix=mat)
         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
@@ -31,8 +34,8 @@ def process_page(
             img_byte_data = img_byte_arr.getvalue()
 
         # upload
-        if page.number == 0:
-            print("Uploading to Gyazo...")
+        if page.number % max_workers == 0:
+            print(f"Batch {page.number // max_workers + 1}: Uploading to Gyazo...")
         res = client.upload_image(img_byte_data)
         url = res.url.replace("i.gyazo.com", "gyazo.com").replace(".png", "")
 
@@ -108,10 +111,13 @@ def main(
         mat = fitz.Matrix(zoom, zoom)
 
         # process pages in parallel
+        num_batches = ceil((last - first + 1) / max_workers)
+        print(f"Number of batches: {num_batches}")
+
         def _process_page(page):
             return process_page(page, mat, client)
 
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
             results = executor.map(_process_page, doc.pages(first - 1, last))
 
     # extract urls and errors
