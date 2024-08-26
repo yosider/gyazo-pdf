@@ -64,12 +64,18 @@ def main(
     PDF_DIR: /Path/to/pdf/directory
     ```
     """
+    assert first > 0, "first must be greater than 0"
+    assert last is None or last > first, "last must be greater than first"
+
     # load config
     conf_path = Path(os.environ.get("HOME")) / ".config" / "gyazo-pdf" / "config.yaml"
     if not conf_path.exists():
         raise FileNotFoundError(f"Config file not found: {str(conf_path)}")
     with open(conf_path) as f:
         conf = yaml.safe_load(f)
+
+    # gyazo client
+    client = Api(access_token=conf["GYAZO_API_TOKEN"])
 
     # get the PDF path
     pdf_dir = Path(conf["PDF_DIR"])
@@ -84,30 +90,29 @@ def main(
         path = max(pdfs, key=os.path.getctime)
 
     print(f"Loading {path.name}...")
-    doc = fitz.open(path)
 
-    if last is not None:
-        last_page_str = f"p.{last}"
-    else:
-        last = doc.page_count
-        last_page_str = f"p.{last} (the last page)"
-    print(f"Processing from p.{first} to {last_page_str}...")
+    with fitz.open(path) as doc:
+        # get page range
+        if last is not None:
+            last = min(last, doc.page_count)
+            last_page_str = f"p.{last}"
+        else:
+            last = doc.page_count
+            last_page_str = f"p.{last} (the last page)"
+        print(f"Processing from p.{first} to {last_page_str}...")
 
-    # Calculate zoom factor to adjust for desired DPI
-    # PDF standard resolution is 72 DPI, so we divide the target DPI by 72
-    zoom = dpi / 72
-    # create a conversion matrix
-    mat = fitz.Matrix(zoom, zoom)
+        # Calculate zoom factor to adjust for desired DPI
+        # PDF standard resolution is 72 DPI, so we divide the target DPI by 72
+        zoom = dpi / 72
+        # create a conversion matrix
+        mat = fitz.Matrix(zoom, zoom)
 
-    # gyazo client
-    client = Api(access_token=conf["GYAZO_API_TOKEN"])
+        # process pages in parallel
+        def _process_page(page):
+            return process_page(page, mat, client)
 
-    # process pages in parallel
-    def _process_page(page):
-        return process_page(page, mat, client)
-
-    with ThreadPoolExecutor() as executor:
-        results = executor.map(_process_page, doc.pages(first - 1, last))
+        with ThreadPoolExecutor() as executor:
+            results = executor.map(_process_page, doc.pages(first - 1, last))
 
     # extract urls and errors
     urls = []
