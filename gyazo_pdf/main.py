@@ -19,6 +19,9 @@ def process_page(
 ) -> tuple[str | None, Exception | None]:
     """Convert a page to an image and upload to Gyazo."""
     try:
+        # convert to image
+        if page.number == 0:
+            print("Converting to image...")
         pix = page.get_pixmap(matrix=mat)
         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
@@ -28,8 +31,11 @@ def process_page(
             img_byte_data = img_byte_arr.getvalue()
 
         # upload
+        if page.number == 0:
+            print("Uploading to Gyazo...")
         res = client.upload_image(img_byte_data)
         url = res.url.replace("i.gyazo.com", "gyazo.com").replace(".png", "")
+
         return url, None
     except Exception as e:
         return None, e
