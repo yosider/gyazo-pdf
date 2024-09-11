@@ -1,6 +1,7 @@
 import os
 import traceback
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from io import BytesIO
 from math import ceil
 from pathlib import Path
@@ -19,12 +20,16 @@ def process_page(
     page: fitz.Page,
     mat: fitz.Matrix,
     client: Api,
+    num_batches: int,
+    first: int,
 ) -> tuple[str | None, Exception | None]:
     """Convert a page to an image and upload to Gyazo."""
     try:
+        idx_batch, idx_in_batch = divmod(page.number - first, max_workers)
+
         # convert to image
-        if page.number % max_workers == 0:
-            print(f"Batch {page.number // max_workers + 1}: Converting to image...")
+        if idx_in_batch == 0:
+            print(f"Batch {idx_batch + 1} / {num_batches}: Converting to image...")
         pix = page.get_pixmap(matrix=mat)
         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
@@ -34,8 +39,8 @@ def process_page(
             img_byte_data = img_byte_arr.getvalue()
 
         # upload
-        if page.number % max_workers == 0:
-            print(f"Batch {page.number // max_workers + 1}: Uploading to Gyazo...")
+        if idx_in_batch == 0:
+            print(f"Batch {idx_batch + 1} / {num_batches}: Uploading to Gyazo...")
         res = client.upload_image(img_byte_data)
         url = res.url.replace("i.gyazo.com", "gyazo.com").replace(".png", "")
 
@@ -53,7 +58,7 @@ def main(
     name: str,
     dpi: int,
     first: int,
-    last: int,
+    last: int | None,
 ):
     """Convert PDF to images and upload to Gyazo.
 
@@ -96,13 +101,11 @@ def main(
 
     with fitz.open(path) as doc:
         # get page range
-        if last is not None:
-            last = min(last, doc.page_count)
-            last_page_str = f"p.{last}"
-        else:
+        if last is None:
             last = doc.page_count
-            last_page_str = f"p.{last} (the last page)"
-        print(f"Processing from p.{first} to {last_page_str}...")
+        else:
+            last = min(last, doc.page_count)
+        print(f"Processing from p.{first} to p.{last} / {doc.page_count}...")
 
         # Calculate zoom factor to adjust for desired DPI
         # PDF standard resolution is 72 DPI, so we divide the target DPI by 72
@@ -112,11 +115,8 @@ def main(
 
         # process pages in parallel
         num_batches = ceil((last - first + 1) / max_workers)
-        print(f"Number of batches: {num_batches}")
-
-        def _process_page(page):
-            return process_page(page, mat, client)
-
+        _process_page = partial(process_page, mat=mat, client=client, num_batches=num_batches, first=first)
+        print(f"Number of workers: {max_workers}")
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             results = executor.map(_process_page, doc.pages(first - 1, last))
 
