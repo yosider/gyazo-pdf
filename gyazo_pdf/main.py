@@ -79,7 +79,7 @@ def main(
     assert last is None or last > first, "last must be greater than first"
 
     # load config
-    conf_path = Path(os.environ.get("HOME")) / ".config" / "gyazo-pdf" / "config.yaml"
+    conf_path = Path("~/.config/gyazo-pdf/config.yaml").expanduser()
     if not conf_path.exists():
         raise FileNotFoundError(f"Config file not found: {str(conf_path)}")
     with open(conf_path) as f:
