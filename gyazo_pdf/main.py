@@ -104,8 +104,8 @@ def main(
 
     with fitz.open(path) as doc:
         # get page range
-        last = doc.page_count if last is None else min(last, doc.page_count)
-        print(f"Processing from p.{first} to p.{last} / {doc.page_count}...")
+        last_page: int = doc.page_count if last is None else min(last, doc.page_count)
+        print(f"Processing from p.{first} to p.{last_page} / {doc.page_count}...")
 
         # Calculate zoom factor to adjust for desired DPI
         # PDF standard resolution is 72 DPI, so we divide the target DPI by 72
@@ -114,11 +114,11 @@ def main(
         mat = fitz.Matrix(zoom, zoom)
 
         # process pages in parallel
-        num_batches = ceil((last - first + 1) / max_workers)
+        num_batches = ceil((last_page - first + 1) / max_workers)
         _process_page = partial(process_page, mat=mat, client=client, num_batches=num_batches, first=first)
         print(f"Number of workers: {max_workers}")
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            results = executor.map(_process_page, doc.pages(first - 1, last))
+            results = executor.map(_process_page, doc.pages(first - 1, last_page))
 
     # extract urls and errors
     urls = []
