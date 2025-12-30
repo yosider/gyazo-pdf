@@ -15,13 +15,7 @@ from gyazo_pdf.processor import PageSuccess, max_workers, process_page
 
 
 @click.command()
-@click.argument(
-    "name",
-    type=str,
-    required=False,
-    default="",
-    help="The filename of the PDF to convert. If not specified, the latest PDF file in PDF_DIR will be used.",
-)
+@click.argument("name", type=str, required=False, default="")
 @click.option("--dpi", type=int, default=300, help="The DPI of the output image")
 @click.option("--first", type=int, default=1, help="The first page to convert")
 @click.option("--last", type=int, default=None, help="The last page to convert")
