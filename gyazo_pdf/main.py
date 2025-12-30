@@ -11,7 +11,7 @@ import pyperclip
 import yaml
 from gyazo import Api
 
-from gyazo_pdf.processor import PageFailure, PageSuccess, max_workers, process_page
+from gyazo_pdf.processor import PageSuccess, max_workers, process_page
 
 
 @click.command()
@@ -73,6 +73,7 @@ def main(
 
     print(f"Loading {path.name}...")
 
+    # process pages
     with fitz.open(path) as doc:
         # 0-based page indices for `doc.pages(start, stop)`
         start_idx = first - 1
@@ -92,24 +93,17 @@ def main(
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             results = executor.map(_process_page, doc.pages(start_idx, stop_idx))
 
-    # extract urls and errors
+    # extract urls and print errors
     urls = []
-    failed_pages: list[tuple[int, PageFailure]] = []
     for page_num, result in enumerate(results, start=first):
         if isinstance(result, PageSuccess):
             urls.append(result.url)
         else:  # PageFailure
-            failed_pages.append((page_num, result))
-
-    # print errors
-    if failed_pages:
-        print("Failed to process the following pages:")
-        for page_num, failure in failed_pages:
-            print("-" * 40)  # separator
+            print("-" * 40)
             print(f"Error on Page {page_num}:")
-            e = failure.error
+            e = result.error
             traceback.print_exception(type(e), e, e.__traceback__)
-        print("-" * 40)
+            print("-" * 40)
 
     # copy urls to clipboard with the following format
     # [https://gyazo.com/image_id_1]
