@@ -27,6 +27,7 @@ def main(
 ):
     """Convert PDF to images and upload to Gyazo.
 
+    \b
     Before running this command, you need to set the following environment variables
     in `~/.config/gyazo-pdf/config.yaml`:
     ```
@@ -34,12 +35,15 @@ def main(
     PDF_DIR: /path/to/search/directory
     ```
 
+    \b
     Args:
         name: The filename of the PDF to convert. If not specified, the latest PDF file in `PDF_DIR` will be used.
         dpi: The DPI of the output image.
         first: The first page to convert.
         last: The last page to convert. If not specified, all pages will be converted.
     """
+    # \b is needed to prevent the newlines from being wrapped in the help message
+
     assert first > 0, "first must be greater than 0"
     assert last is None or last > first, "last must be greater than first"
 
