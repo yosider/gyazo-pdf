@@ -1,6 +1,7 @@
 import os
 import traceback
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from functools import partial
 from io import BytesIO
 from math import ceil
@@ -16,13 +17,30 @@ from PIL import Image
 max_workers = min(32, (os.cpu_count() or 1) + 4)
 
 
+@dataclass
+class PageSuccess:
+    """Successful page processing result."""
+
+    url: str
+
+
+@dataclass
+class PageFailure:
+    """Failed page processing result."""
+
+    error: Exception
+
+
+PageResult = PageSuccess | PageFailure
+
+
 def process_page(
     page: fitz.Page,
     mat: fitz.Matrix,
     client: Api,
     num_batches: int,
     first: int,
-) -> tuple[str | None, Exception | None]:
+) -> PageResult:
     """Convert a page to an image and upload to Gyazo."""
     try:
         idx_batch, idx_in_batch = divmod(page.number - first, max_workers)
@@ -44,12 +62,13 @@ def process_page(
             res = client.upload_image(img_byte_arr)
 
         url = res.url
-        if url is not None:
-            url = url.replace("i.gyazo.com", "gyazo.com").replace(".png", "")
+        if url is None:
+            raise ValueError("Upload succeeded but URL is None")
+        url = url.replace("i.gyazo.com", "gyazo.com").replace(".png", "")
 
-        return url, None
+        return PageSuccess(url=url)
     except Exception as e:
-        return None, e
+        return PageFailure(error=e)
 
 
 @click.command()
@@ -122,20 +141,21 @@ def main(
 
     # extract urls and errors
     urls = []
-    failed_pages = []
-    for page_num, (url, error) in enumerate(results, start=first):
-        if url is not None:
-            urls.append(url)
-        else:
-            failed_pages.append((page_num, error))
+    failed_pages: list[tuple[int, PageFailure]] = []
+    for page_num, result in enumerate(results, start=first):
+        if isinstance(result, PageSuccess):
+            urls.append(result.url)
+        else:  # PageFailure
+            failed_pages.append((page_num, result))
 
     # print errors
     if failed_pages:
         print("Failed to process the following pages:")
-        for page_num, error in failed_pages:
+        for page_num, failure in failed_pages:
             print("-" * 40)  # separator
             print(f"Error on Page {page_num}:")
-            traceback.print_exception(type(error), error, error.__traceback__)
+            e = failure.error
+            traceback.print_exception(type(e), e, e.__traceback__)
         print("-" * 40)
 
     # copy urls to clipboard with the following format
