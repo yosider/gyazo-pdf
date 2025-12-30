@@ -31,7 +31,7 @@ def process_page(
         if idx_in_batch == 0:
             print(f"Batch {idx_batch + 1} / {num_batches}: Converting to image...")
         pix = page.get_pixmap(matrix=mat)
-        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
 
         # save the image to a byte array because client.upload_image expects image data in bytes
         with BytesIO() as img_byte_arr:
