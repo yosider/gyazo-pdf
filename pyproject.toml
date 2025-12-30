@@ -1,6 +1,6 @@
 [project]
 name = "gyazo-pdf"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Python script to convert PDF pages to images and upload them to Gyazo."
 readme = "README.md"
 requires-python = ">=3.10"
