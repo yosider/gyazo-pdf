@@ -3,29 +3,30 @@ A Python script to convert PDF pages to images and upload them to Gyazo.
 The URLs of the uploaded images are copied to the clipboard.
 
 ## Prerequisites
-- Python >= 3.8
-- Gyazo account and API token
+- [Gyazo](https://gyazo.com/) account and API token
+- [pipx](https://pipx.pypa.io/) or [uv](https://docs.astral.sh/uv/)
 
 ## Installation
-Clone the repository and install
 ```bash
-git clone https://github.com/yosider/gyazo-pdf.git
-cd gyazo-pdf
-pip install .
+# Using pipx
+pipx install gyazo-pdf
+
+# Or using uv
+uv tool install gyazo-pdf
+```
+
+## Configuration
+Create a config file at `~/.config/gyazo-pdf/config.yaml`:
+```yaml
+GYAZO_API_TOKEN: your_token_here
+PDF_DIR: /path/to/pdf/directory
 ```
 
 ## Usage
-Create a config file at `~/.config/gyazo_pdf/config.yaml` and set your Gyazo API token and the directory where your PDFs are stored.
-```yaml
-GYAZO_API_TOKEN: ...
-PDF_DIR: /path/to/dir  # The script searches pdf files in this directory
-```
+```bash
+# Upload a specific PDF
+gp filename  # or filename.pdf
 
-Then run the command:
-```bash
-gp example.pdf
-```
-or you can omit the file name to upload the latest PDF file in the directory:
-```bash
+# Upload the latest PDF in the configured directory
 gp
 ```
