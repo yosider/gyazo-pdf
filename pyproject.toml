@@ -25,10 +25,27 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["gyazo_pdf"]
 
-[tool.black]
-line-length = 120
+[dependency-groups]
+dev = ["ruff>=0.8.0"]
 
-[tool.isort]
-profile = "black"
-line_length = 120
-known_third_party = []
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
