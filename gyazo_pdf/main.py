@@ -101,10 +101,7 @@ def main(
 
     with fitz.open(path) as doc:
         # get page range
-        if last is None:
-            last = doc.page_count
-        else:
-            last = min(last, doc.page_count)
+        last = doc.page_count if last is None else min(last, doc.page_count)
         print(f"Processing from p.{first} to p.{last} / {doc.page_count}...")
 
         # Calculate zoom factor to adjust for desired DPI
