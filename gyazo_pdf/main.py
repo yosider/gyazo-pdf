@@ -33,16 +33,19 @@ def process_page(
         pix = page.get_pixmap(matrix=mat)
         img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
 
-        # save the image to a byte array because client.upload_image expects image data in bytes
+        # save the image to a byte array because client.upload_image expects image data in BinaryIO
         with BytesIO() as img_byte_arr:
             img.save(img_byte_arr, format="PNG")
-            img_byte_data = img_byte_arr.getvalue()
+            img_byte_arr.seek(0)
 
-        # upload
-        if idx_in_batch == 0:
-            print(f"Batch {idx_batch + 1} / {num_batches}: Uploading to Gyazo...")
-        res = client.upload_image(img_byte_data)
-        url = res.url.replace("i.gyazo.com", "gyazo.com").replace(".png", "")
+            # upload
+            if idx_in_batch == 0:
+                print(f"Batch {idx_batch + 1} / {num_batches}: Uploading to Gyazo...")
+            res = client.upload_image(img_byte_arr)
+
+        url = res.url
+        if url is not None:
+            url = url.replace("i.gyazo.com", "gyazo.com").replace(".png", "")
 
         return url, None
     except Exception as e:
