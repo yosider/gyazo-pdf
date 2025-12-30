@@ -1,9 +1,7 @@
 import os
 import traceback
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
 from functools import partial
-from io import BytesIO
 from math import ceil
 from pathlib import Path
 
@@ -12,67 +10,18 @@ import fitz
 import pyperclip
 import yaml
 from gyazo import Api
-from PIL import Image
 
-max_workers = min(32, (os.cpu_count() or 1) + 4)
-
-
-@dataclass
-class PageSuccess:
-    """Successful page processing result."""
-
-    url: str
-
-
-@dataclass
-class PageFailure:
-    """Failed page processing result."""
-
-    error: Exception
-
-
-PageResult = PageSuccess | PageFailure
-
-
-def process_page(
-    page: fitz.Page,
-    mat: fitz.Matrix,
-    client: Api,
-    num_batches: int,
-    first: int,
-) -> PageResult:
-    """Convert a page to an image and upload to Gyazo."""
-    try:
-        idx_batch, idx_in_batch = divmod(page.number - first, max_workers)
-
-        # convert to image
-        if idx_in_batch == 0:
-            print(f"Batch {idx_batch + 1} / {num_batches}: Converting to image...")
-        pix = page.get_pixmap(matrix=mat)
-        img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-
-        # save the image to a byte array because client.upload_image expects image data in BinaryIO
-        with BytesIO() as img_byte_arr:
-            img.save(img_byte_arr, format="PNG")
-            img_byte_arr.seek(0)
-
-            # upload
-            if idx_in_batch == 0:
-                print(f"Batch {idx_batch + 1} / {num_batches}: Uploading to Gyazo...")
-            res = client.upload_image(img_byte_arr)
-
-        url = res.url
-        if url is None:
-            raise ValueError("Upload succeeded but URL is None")
-        url = url.replace("i.gyazo.com", "gyazo.com").replace(".png", "")
-
-        return PageSuccess(url=url)
-    except Exception as e:
-        return PageFailure(error=e)
+from gyazo_pdf.processor import PageFailure, PageSuccess, max_workers, process_page
 
 
 @click.command()
-@click.argument("name", type=str, required=False, default="")
+@click.argument(
+    "name",
+    type=str,
+    required=False,
+    default="",
+    help="The filename of the PDF to convert. If not specified, the latest PDF file in PDF_DIR will be used.",
+)
 @click.option("--dpi", type=int, default=300, help="The DPI of the output image")
 @click.option("--first", type=int, default=1, help="The first page to convert")
 @click.option("--last", type=int, default=None, help="The last page to convert")
@@ -84,15 +33,18 @@ def main(
 ):
     """Convert PDF to images and upload to Gyazo.
 
-    NAME: The filename of the PDF to convert. If not specified, the latest PDF file in PDF_DIR will be used.
-
-    \b
     Before running this command, you need to set the following environment variables
-    in ~/.config/gyazo-pdf/config.yaml:
+    in `~/.config/gyazo-pdf/config.yaml`:
     ```
     GYAZO_API_TOKEN: your_gyazo_api_token
-    PDF_DIR: /Path/to/pdf/directory
+    PDF_DIR: /path/to/search/directory
     ```
+
+    Args:
+        name: The filename of the PDF to convert. If not specified, the latest PDF file in `PDF_DIR` will be used.
+        dpi: The DPI of the output image.
+        first: The first page to convert.
+        last: The last page to convert. If not specified, all pages will be converted.
     """
     assert first > 0, "first must be greater than 0"
     assert last is None or last > first, "last must be greater than first"
